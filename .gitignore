@@ -1,4 +1,4 @@
-*.sbrain.bak
 __pycache__/
 *.pyc
+*.sbrain.bak
 .DS_Store
