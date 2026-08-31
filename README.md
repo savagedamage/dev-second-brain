@@ -1,5 +1,8 @@
 # Dev Second Brain
 
+[![CI](https://github.com/savagedamage/dev-second-brain/actions/workflows/ci.yml/badge.svg)](https://github.com/savagedamage/dev-second-brain/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A coding assistant that indexes your codebase locally and answers questions
 with grounded, file:line citations. Phase 1 = CLI (index + grounded Q&A).
 BYOK at cost, or a local model via llama.cpp. No telemetry.
@@ -20,24 +23,47 @@ BYOK at cost, or a local model via llama.cpp. No telemetry.
       cli.py       subcommands: index / ask / status / server
     bin/sbrain     launcher
 
+## Requirements
+
+- Python 3.9+
+- [ripgrep](https://github.com/BurntSushi/ripgrep) (`rg`) on your PATH — used for
+  fast lexical search. Install with `apt install ripgrep`, `brew install ripgrep`,
+  or `pkg install ripgrep` (Termux).
+- A model backend: either a local [llama.cpp](https://github.com/ggerganov/llama.cpp)
+  server, or a BYOK OpenAI-compatible API (see [BYOK](#byok) below).
+
+## Install
+
+```bash
+pip install git+https://github.com/savagedamage/dev-second-brain.git
+# or, from a clone:
+git clone https://github.com/savagedamage/dev-second-brain.git
+cd dev-second-brain
+pip install -e .
+```
+
+This installs an `sbrain` command. (You can also run it without installing via
+`python3 -m sbrain ...` or `bin/sbrain ...` from a clone.)
+
 ## Usage
 
     # 1. index a repo (once; cached in ~/.cache/sbrain/<hash>.json)
-    bin/sbrain index /path/to/repo
+    sbrain index /path/to/repo
 
     # 2. start a local model server (llama.cpp)
-    bin/sbrain server            # prints the command
+    sbrain server            # prints the command; set SBRAIN_SERVER_BIN /
+                             # SBRAIN_MODEL_PATH to point at your binary + model
 
     # 3. ask
-    bin/sbrain ask "where is auth handled?" /path/to/repo
+    sbrain ask "where is auth handled?" /path/to/repo
 
     # 4. fix (propose + apply a code change, with confirmation + .sbrain.bak backup)
-    bin/sbrain fix "fix the add function to return a + b" /path/to/repo
+    sbrain fix "fix the add function to return a + b" /path/to/repo
     #   flags: --yes (skip prompt), --dry-run (show diff only), --top-k N
 
     # 5. history (browse past queries; JSONL in ~/.local/share/sbrain/history.jsonl)
-    bin/sbrain history --last 10
-    bin/sbrain history <id>
+    sbrain history --last 10
+    sbrain history <id>
 
     # optional: per-query cost (USD per 1M tokens; set both to enable)
     export SBRAIN_PRICE_INPUT=0.27 SBRAIN_PRICE_OUTPUT=1.10
@@ -78,3 +104,25 @@ and widens the context budget for BYOK (see llm.default_max_tokens).
   (patch.extract_diff / apply_diff are implemented but unused by default).
 - Retrieval latency ~10s on a 3k-file repo (one rg -l per term). Could be cut
   by batching doc-freq into fewer rg invocations.
+
+## Development
+
+```bash
+git clone https://github.com/savagedamage/dev-second-brain.git
+cd dev-second-brain
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"    # sbrain + pytest + ruff
+
+pytest                      # run the tests
+ruff check .                # lint
+ruff format .               # auto-format
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contributor guide. The core
+package has no Python runtime dependencies (standard library + the external `rg`
+binary), and we'd like to keep it that way.
+
+## License
+
+[MIT](LICENSE) © savagedamage
+
