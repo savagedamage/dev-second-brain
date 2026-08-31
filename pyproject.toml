@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dev-second-brain"
+version = "0.1.0"
+description = "Local/BYOK coding assistant: indexes your codebase and answers with file:line citations"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "savagedamage" }]
+keywords = ["cli", "code-search", "rag", "llm", "developer-tools", "local-first"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+]
+# No runtime Python dependencies: sbrain uses only the standard library.
+# It shells out to `ripgrep` (rg) at run time - see README for install.
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/savagedamage/dev-second-brain"
+Repository = "https://github.com/savagedamage/dev-second-brain"
+Issues = "https://github.com/savagedamage/dev-second-brain/issues"
+
+[project.scripts]
+sbrain = "sbrain.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.4",
+]
+
+[tool.setuptools]
+packages = ["sbrain"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+# _testrepo/ is a deliberately-broken demo fixture used by `sbrain fix`;
+# it is not real project source, so it is excluded from linting.
+extend-exclude = ["_testrepo"]
+
+[tool.ruff.lint]
+# Sensible default rule set for a beginner-friendly project.
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = [
+    "E501",  # line length is handled by the formatter, not enforced hard
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
