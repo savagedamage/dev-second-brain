@@ -37,7 +37,9 @@ def _cost_usd(prompt_tokens, completion_tokens) -> float | None:
     if pi is None or po is None:
         return None
     try:
-        return ((prompt_tokens or 0) / 1e6) * float(pi) + ((completion_tokens or 0) / 1e6) * float(po)
+        return ((prompt_tokens or 0) / 1e6) * float(pi) + ((completion_tokens or 0) / 1e6) * float(
+            po
+        )
     except ValueError:
         return None
 
@@ -82,7 +84,9 @@ def complete(system: str, user: str, max_tokens: int = 900, temperature: float =
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=int(os.environ.get("SBRAIN_TIMEOUT", "600"))) as resp:
+        with urllib.request.urlopen(
+            req, timeout=int(os.environ.get("SBRAIN_TIMEOUT", "600"))
+        ) as resp:
             data = json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
         body = e.read().decode(errors="replace")[:500]
@@ -90,9 +94,13 @@ def complete(system: str, user: str, max_tokens: int = 900, temperature: float =
     except urllib.error.URLError as e:
         hint = ""
         if backend["kind"] == "local":
-            hint = (". Is llama-server running? Start it with 'sbrain server' "
-                    "(or set SBRAIN_BASE_URL/SBRAIN_API_KEY for BYOK)")
-        raise LLMError(f"cannot reach {backend['kind']} backend at {backend['base']}: {e.reason}{hint}") from e
+            hint = (
+                ". Is llama-server running? Start it with 'sbrain server' "
+                "(or set SBRAIN_BASE_URL/SBRAIN_API_KEY for BYOK)"
+            )
+        raise LLMError(
+            f"cannot reach {backend['kind']} backend at {backend['base']}: {e.reason}{hint}"
+        ) from e
     except (json.JSONDecodeError, KeyError) as e:
         raise LLMError(f"bad response from {backend['kind']} backend: {e}") from e
 
@@ -112,8 +120,13 @@ def complete(system: str, user: str, max_tokens: int = 900, temperature: float =
     }
 
 
-def chat(question: str, context: str, max_tokens: int = 900, temperature: float = 0.2,
-         system: str | None = None) -> dict:
+def chat(
+    question: str,
+    context: str,
+    max_tokens: int = 900,
+    temperature: float = 0.2,
+    system: str | None = None,
+) -> dict:
     user = f"CONTEXT:\n{context}\n\nQUESTION: {question}"
     return complete(system or SYSTEM_PROMPT, user, max_tokens=max_tokens, temperature=temperature)
 

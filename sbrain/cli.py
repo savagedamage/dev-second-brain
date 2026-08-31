@@ -8,14 +8,26 @@ import sys
 import time
 from pathlib import Path
 
-from . import index as index_mod
 from . import history as history_mod
+from . import index as index_mod
 from . import llm as llm_mod
 from . import patch as patch_mod
 from . import retrieve as retrieve_mod
 
-MODEL_PATH = "/data/data/com.termux/files/home/projects/local-meeting-notes/spike/qwen2.5-3b-instruct-q4_k_m.gguf"
-SERVER_BIN = "/data/data/com.termux/files/home/projects/local-meeting-notes/spike/llama.cpp/build/bin/llama-server"
+# Paths to the local llama.cpp server binary and GGUF model used by
+# `sbrain server`. These are only hints for the command it prints; override
+# them with the SBRAIN_SERVER_BIN and SBRAIN_MODEL_PATH environment variables
+# so the tool works on any machine, not just the author's.
+DEFAULT_SERVER_BIN = "llama-server"
+DEFAULT_MODEL_PATH = "/path/to/model.gguf"
+
+
+def _server_bin() -> str:
+    return os.environ.get("SBRAIN_SERVER_BIN", DEFAULT_SERVER_BIN)
+
+
+def _model_path() -> str:
+    return os.environ.get("SBRAIN_MODEL_PATH", DEFAULT_MODEL_PATH)
 
 
 def _resolve_repo(arg: str | None) -> Path:
@@ -76,8 +88,13 @@ def cmd_ask(args: argparse.Namespace) -> int:
 
     t0 = time.time()
     context, cited = retrieve_mod.build_context(
-        repo, idx, terms, top_k=top_k, radius=radius,
-        max_lines_per_file=per_file, max_total_lines=total,
+        repo,
+        idx,
+        terms,
+        top_k=top_k,
+        radius=radius,
+        max_lines_per_file=per_file,
+        max_total_lines=total,
     )
     if not context:
         print("no matches found in the indexed files", file=sys.stderr)
@@ -86,12 +103,14 @@ def cmd_ask(args: argparse.Namespace) -> int:
 
     overview = retrieve_mod.repo_map_overview(idx, [c["path"] for c in cited])
     full_context = (
-        f"RELEVANT FILES (repo map):\n{overview}\n\n"
-        f"CODE CONTEXT (line-numbered):\n{context}"
+        f"RELEVANT FILES (repo map):\n{overview}\n\nCODE CONTEXT (line-numbered):\n{context}"
     )
 
-    print(f"[sbrain] retrieved {len(cited)} files in {t_ret*1000:.0f} ms "
-          f"({sum(c['hits'] for c in cited)} hits); asking model ...", file=sys.stderr)
+    print(
+        f"[sbrain] retrieved {len(cited)} files in {t_ret * 1000:.0f} ms "
+        f"({sum(c['hits'] for c in cited)} hits); asking model ...",
+        file=sys.stderr,
+    )
 
     max_tokens = args.max_tokens or llm_mod.default_max_tokens()
     try:
@@ -104,8 +123,10 @@ def cmd_ask(args: argparse.Namespace) -> int:
     print("---")
     print(f"backend: {result['backend']} ({result['model']})")
     if result["total_tokens"]:
-        print(f"tokens: {result['total_tokens']} total "
-              f"({result['prompt_tokens']} prompt / {result['completion_tokens']} completion)")
+        print(
+            f"tokens: {result['total_tokens']} total "
+            f"({result['prompt_tokens']} prompt / {result['completion_tokens']} completion)"
+        )
     if result.get("cost_usd") is not None:
         print(f"cost:   ${result['cost_usd']:.5f}")
     print("sources:")
@@ -131,8 +152,13 @@ def cmd_fix(args: argparse.Namespace) -> int:
     if args.top_k:
         top_k = args.top_k
     _, cited = retrieve_mod.build_context(
-        repo, idx, terms, top_k=top_k, radius=radius,
-        max_lines_per_file=per_file, max_total_lines=total,
+        repo,
+        idx,
+        terms,
+        top_k=top_k,
+        radius=radius,
+        max_lines_per_file=per_file,
+        max_total_lines=total,
     )
     if not cited:
         print("no matching files found for that change", file=sys.stderr)
@@ -148,7 +174,10 @@ def cmd_fix(args: argparse.Namespace) -> int:
         except OSError:
             continue
         if len(text) > 30_000 or text.count("\n") > 600:
-            print(f"[sbrain] note: {c['path']} too large for whole-file mode; skipped", file=sys.stderr)
+            print(
+                f"[sbrain] note: {c['path']} too large for whole-file mode; skipped",
+                file=sys.stderr,
+            )
             continue
         files[c["path"]] = text
         allowed.add(c["path"])
@@ -156,8 +185,10 @@ def cmd_fix(args: argparse.Namespace) -> int:
         print("no editable candidate files (all too large)", file=sys.stderr)
         return 1
 
-    print(f"[sbrain] proposing change over {len(files)} file(s) "
-          f"({', '.join(files)}) ...", file=sys.stderr)
+    print(
+        f"[sbrain] proposing change over {len(files)} file(s) ({', '.join(files)}) ...",
+        file=sys.stderr,
+    )
 
     try:
         result = llm_mod.complete(
@@ -172,7 +203,10 @@ def cmd_fix(args: argparse.Namespace) -> int:
 
     changes = patch_mod.parse_whole_reply(result["answer"], allowed)
     if not changes:
-        print("model reported no change (NO_CHANGE) or returned no valid file blocks.", file=sys.stderr)
+        print(
+            "model reported no change (NO_CHANGE) or returned no valid file blocks.",
+            file=sys.stderr,
+        )
         print("raw reply:\n" + result["answer"])
         return 1
 
@@ -183,7 +217,10 @@ def cmd_fix(args: argparse.Namespace) -> int:
         if d:
             diffs.append(d)
     if not diffs:
-        print("no content differences detected (model may have echoed input unchanged).", file=sys.stderr)
+        print(
+            "no content differences detected (model may have echoed input unchanged).",
+            file=sys.stderr,
+        )
         return 1
 
     print("\n" + "\n".join(diffs) + "\n")
@@ -218,7 +255,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     idx = index_mod.load_index(cache)
     if idx:
         age = time.time() - (idx.get("created") or 0)
-        print(f"index:       {idx['n_files']} files, {age/60:.0f} min old ({cache.name})")
+        print(f"index:       {idx['n_files']} files, {age / 60:.0f} min old ({cache.name})")
     else:
         print("index:       none (run 'sbrain index')")
     print(f"backend:     {backend['kind']} -> {backend['base']} (model: {backend['model']})")
@@ -258,7 +295,9 @@ def _print_entry(e: dict) -> None:
     print(f"question: {e['question']}")
     t = e.get("tokens") or {}
     if t.get("total_tokens"):
-        print(f"tokens:   {t.get('total_tokens')} total ({t.get('prompt_tokens')} p / {t.get('completion_tokens')} c)")
+        print(
+            f"tokens:   {t.get('total_tokens')} total ({t.get('prompt_tokens')} p / {t.get('completion_tokens')} c)"
+        )
     if e.get("cost_usd") is not None:
         print(f"cost:     ${e['cost_usd']:.5f}")
     if e.get("sources"):
@@ -268,8 +307,11 @@ def _print_entry(e: dict) -> None:
 
 def cmd_server(args: argparse.Namespace) -> int:
     print("# start the local model server (background):")
-    print(f"  {SERVER_BIN} -m {MODEL_PATH} --port 8080 -c {args.ctx} "
-          f"--threads {args.threads} --parallel 1 &")
+    print("# override paths with SBRAIN_SERVER_BIN / SBRAIN_MODEL_PATH")
+    print(
+        f"  {_server_bin()} -m {_model_path()} --port 8080 -c {args.ctx} "
+        f"--threads {args.threads} --parallel 1 &"
+    )
     return 0
 
 
@@ -281,21 +323,37 @@ def main(argv: list[str] | None = None) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     p_index = sub.add_parser("index", help="build/refresh the index for a repo")
-    p_index.add_argument("path", nargs="?", default=None, help="repo root (default: cwd or SBRAIN_REPO)")
+    p_index.add_argument(
+        "path", nargs="?", default=None, help="repo root (default: cwd or SBRAIN_REPO)"
+    )
     p_index.add_argument("-v", "--verbose", action="store_true")
     p_index.set_defaults(func=cmd_index)
 
     p_ask = sub.add_parser("ask", help="ask a question about the repo")
     p_ask.add_argument("question", help="natural-language question")
-    p_ask.add_argument("path", nargs="?", default=None, help="repo root (default: cwd or SBRAIN_REPO)")
-    p_ask.add_argument("--top-k", type=int, default=None, help="files to include in context (default: 4 BYOK / 3 local)")
+    p_ask.add_argument(
+        "path", nargs="?", default=None, help="repo root (default: cwd or SBRAIN_REPO)"
+    )
+    p_ask.add_argument(
+        "--top-k",
+        type=int,
+        default=None,
+        help="files to include in context (default: 4 BYOK / 3 local)",
+    )
     p_ask.add_argument("--max-tokens", type=int, default=None)
     p_ask.set_defaults(func=cmd_ask)
 
     p_fix = sub.add_parser("fix", help="propose and apply a code change (unified diff)")
     p_fix.add_argument("instruction", help="natural-language change instruction")
-    p_fix.add_argument("path", nargs="?", default=None, help="repo root (default: cwd or SBRAIN_REPO)")
-    p_fix.add_argument("--top-k", type=int, default=None, help="files to include in context (default: 4 BYOK / 3 local)")
+    p_fix.add_argument(
+        "path", nargs="?", default=None, help="repo root (default: cwd or SBRAIN_REPO)"
+    )
+    p_fix.add_argument(
+        "--top-k",
+        type=int,
+        default=None,
+        help="files to include in context (default: 4 BYOK / 3 local)",
+    )
     p_fix.add_argument("--max-tokens", type=int, default=None)
     p_fix.add_argument("--yes", action="store_true", help="apply without prompting")
     p_fix.add_argument("--dry-run", action="store_true", help="show the diff but do not apply")

@@ -26,8 +26,11 @@ def add(kind: str, question: str, answer: str, cited: list[dict], result: dict, 
         "repo": repo,
         "backend": result.get("backend"),
         "model": result.get("model"),
-        "tokens": {k: result[k] for k in ("prompt_tokens", "completion_tokens", "total_tokens")
-                   if result.get(k) is not None},
+        "tokens": {
+            k: result[k]
+            for k in ("prompt_tokens", "completion_tokens", "total_tokens")
+            if result.get(k) is not None
+        },
         "cost_usd": result.get("cost_usd"),
         "sources": [c["path"] for c in cited],
     }
@@ -40,7 +43,7 @@ def list_entries(n: int = 20) -> list[dict]:
     p = history_path()
     if not p.exists():
         return []
-    entries = [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+    entries = [json.loads(line) for line in p.read_text().splitlines() if line.strip()]
     return entries[-n:][::-1]
 
 
@@ -48,10 +51,10 @@ def get_entry(entry_id: str) -> dict | None:
     p = history_path()
     if not p.exists():
         return None
-    for l in p.read_text().splitlines():
-        if not l.strip():
+    for line in p.read_text().splitlines():
+        if not line.strip():
             continue
-        e = json.loads(l)
+        e = json.loads(line)
         if e.get("id") == entry_id:
             return e
     return None

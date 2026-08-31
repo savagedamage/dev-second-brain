@@ -20,21 +20,134 @@ from pathlib import Path
 _WORD_RE = re.compile(r"[A-Za-z0-9_]+")
 
 _STOPWORDS = {
-    "a", "an", "the", "and", "or", "but", "if", "then", "else", "when",
-    "where", "which", "who", "whom", "what", "how", "why", "is", "are",
-    "was", "were", "be", "been", "being", "am", "do", "does", "did",
-    "have", "has", "had", "will", "would", "can", "could", "should",
-    "shall", "may", "might", "must", "to", "of", "in", "on", "at", "by",
-    "for", "with", "about", "into", "through", "during", "before", "after",
-    "above", "below", "from", "up", "down", "out", "off", "over", "under",
-    "again", "further", "then", "once", "here", "there", "all", "any",
-    "both", "each", "few", "more", "most", "other", "some", "such", "no",
-    "nor", "not", "only", "own", "same", "so", "than", "too", "very",
-    "just", "also", "this", "that", "these", "those", "it", "its", "i",
-    "you", "your", "we", "our", "they", "them", "their", "he", "she",
-    "his", "her", "us", "me", "my", "does", "happen", "happens", "require",
-    "required", "missing", "wrong", "instead", "please", "explain",
-    "show", "find", "tell", "give", "like", "using", "use", "used",
+    "a",
+    "an",
+    "the",
+    "and",
+    "or",
+    "but",
+    "if",
+    "then",
+    "else",
+    "when",
+    "where",
+    "which",
+    "who",
+    "whom",
+    "what",
+    "how",
+    "why",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "am",
+    "do",
+    "does",
+    "did",
+    "have",
+    "has",
+    "had",
+    "will",
+    "would",
+    "can",
+    "could",
+    "should",
+    "shall",
+    "may",
+    "might",
+    "must",
+    "to",
+    "of",
+    "in",
+    "on",
+    "at",
+    "by",
+    "for",
+    "with",
+    "about",
+    "into",
+    "through",
+    "during",
+    "before",
+    "after",
+    "above",
+    "below",
+    "from",
+    "up",
+    "down",
+    "out",
+    "off",
+    "over",
+    "under",
+    "again",
+    "further",
+    "once",
+    "here",
+    "there",
+    "all",
+    "any",
+    "both",
+    "each",
+    "few",
+    "more",
+    "most",
+    "other",
+    "some",
+    "such",
+    "no",
+    "nor",
+    "not",
+    "only",
+    "own",
+    "same",
+    "so",
+    "than",
+    "too",
+    "very",
+    "just",
+    "also",
+    "this",
+    "that",
+    "these",
+    "those",
+    "it",
+    "its",
+    "i",
+    "you",
+    "your",
+    "we",
+    "our",
+    "they",
+    "them",
+    "their",
+    "he",
+    "she",
+    "his",
+    "her",
+    "us",
+    "me",
+    "my",
+    "happen",
+    "happens",
+    "require",
+    "required",
+    "missing",
+    "wrong",
+    "instead",
+    "please",
+    "explain",
+    "show",
+    "find",
+    "tell",
+    "give",
+    "like",
+    "using",
+    "use",
+    "used",
 }
 
 
@@ -116,7 +229,9 @@ def line_hits(repo_root: Path, terms: list[str]) -> dict[str, list[int]]:
     if not terms:
         return {}
     eargs = [x for t in terms for x in ("-e", t)]
-    out = _run_rg(["-n", "-i", "--no-heading", "-m", "300", "-g", "!.git/**", *eargs, "."], repo_root)
+    out = _run_rg(
+        ["-n", "-i", "--no-heading", "-m", "300", "-g", "!.git/**", *eargs, "."], repo_root
+    )
     hits: dict[str, list[int]] = {}
     for line in out:
         parts = line.split(":", 2)
@@ -158,7 +273,7 @@ def score_files(
     # filename + symbol bonuses (IDF-weighted; symbol bonus is once per term,
     # NOT summed over every symbol, so files with many same-prefix symbols
     # like "llama_*" don't get inflated)
-    for path, base_score in list(scores.items()):
+    for path, _base_score in list(scores.items()):
         fmeta = idx_files[path]
         name = Path(path).name.lower()
         for t in terms:
@@ -203,7 +318,7 @@ def _merge_windows(line_nos: list[int], radius: int, max_lines: int) -> list[tup
     )
     kept: list[tuple[int, int]] = []
     used = 0
-    for h, s, e in scored:
+    for _h, s, e in scored:
         length = e - s + 1
         if used + length > max_lines:
             remain = max_lines - used
@@ -261,7 +376,9 @@ def build_context(
         lines = _read_lines(repo_root, path)
         if not lines:
             continue
-        windows = _merge_windows(win_hits.get(path, []) or hits.get(path, []), radius, max_lines_per_file)
+        windows = _merge_windows(
+            win_hits.get(path, []) or hits.get(path, []), radius, max_lines_per_file
+        )
         if not windows:
             continue
         sym_lines = ""

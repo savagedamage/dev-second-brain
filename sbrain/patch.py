@@ -29,13 +29,23 @@ PATCH_SYSTEM = (
 
 
 def build_prompt(instruction: str, context: str) -> str:
-    return f"CODE CONTEXT:\n{context}\n\nINSTRUCTION: {instruction}\n\nProduce the unified diff now:"
+    return (
+        f"CODE CONTEXT:\n{context}\n\nINSTRUCTION: {instruction}\n\nProduce the unified diff now:"
+    )
 
 
 _DIFF_START = re.compile(r"^(?:diff --git |--- |\+\+\+ |@@ )", re.M)
 _VALID_PREFIXES = (
-    "diff --git", "index ", "--- ", "+++ ", "@@ ",
-    "new file mode", "deleted file mode", "similarity index", "rename from", "rename to",
+    "diff --git",
+    "index ",
+    "--- ",
+    "+++ ",
+    "@@ ",
+    "new file mode",
+    "deleted file mode",
+    "similarity index",
+    "rename from",
+    "rename to",
 )
 
 
@@ -46,11 +56,11 @@ def extract_diff(text: str) -> str | None:
     lines = text.splitlines()
 
     start = None
-    for i, l in enumerate(lines):
-        if l.startswith("diff --git "):
+    for i, ln in enumerate(lines):
+        if ln.startswith("diff --git "):
             start = i
             break
-        if l.startswith("--- ") and i + 1 < len(lines) and lines[i + 1].startswith("+++ "):
+        if ln.startswith("--- ") and i + 1 < len(lines) and lines[i + 1].startswith("+++ "):
             start = i
             break
     if start is None:
@@ -58,17 +68,17 @@ def extract_diff(text: str) -> str | None:
 
     keep: list[str] = []
     saw_hunk = False
-    for l in lines[start:]:
-        if l.startswith(_VALID_PREFIXES):
-            keep.append(l)
-            if l.startswith("@@"):
+    for ln in lines[start:]:
+        if ln.startswith(_VALID_PREFIXES):
+            keep.append(ln)
+            if ln.startswith("@@"):
                 saw_hunk = True
             continue
-        if saw_hunk and (l[:1] in ("+", "-", " ", "\\")):
-            keep.append(l)
+        if saw_hunk and (ln[:1] in ("+", "-", " ", "\\")):
+            keep.append(ln)
             continue
-        if l.strip() == "":
-            keep.append(l)
+        if ln.strip() == "":
+            keep.append(ln)
             continue
         break  # first non-diff line after the diff ends the extraction
 
@@ -79,10 +89,10 @@ def extract_diff(text: str) -> str | None:
 def summarize_diff(diff_text: str) -> list[str]:
     """List the files touched by a diff."""
     files = []
-    for l in diff_text.splitlines():
-        if l.startswith("diff --git "):
+    for ln in diff_text.splitlines():
+        if ln.startswith("diff --git "):
             # diff --git a/foo b/foo  (or "a/foo" "b/foo")
-            parts = l.split()
+            parts = ln.split()
             if len(parts) >= 4:
                 files.append(parts[3].removeprefix("b/"))
             elif len(parts) == 3:
@@ -98,7 +108,9 @@ def apply_diff(repo_root: Path, diff_text: str) -> tuple[bool, str]:
     try:
         proc = subprocess.run(
             ["patch", "-p1", "-f", "-b", "--no-backup-if-mismatch", "-i", tmp],
-            cwd=repo_root, capture_output=True, text=True,
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
         )
         out = (proc.stdout or "") + (proc.stderr or "")
         return proc.returncode == 0, out.strip()
@@ -123,12 +135,14 @@ WHOLE_SYSTEM = (
     "If no change is needed, output exactly: NO_CHANGE"
 )
 
+
 def build_whole_prompt(instruction: str, files: dict[str, str]) -> str:
     parts = []
     for path, content in files.items():
         parts.append(f"=== FILE: {path} ===\n{content}=== END ===")
     return (
-        "CURRENT FILES:\n" + "\n".join(parts)
+        "CURRENT FILES:\n"
+        + "\n".join(parts)
         + f"\n\nINSTRUCTION: {instruction}\n\nNow output the changed files:"
     )
 
@@ -157,7 +171,7 @@ def parse_whole_reply(reply: str, allowed_paths: set[str]) -> dict[str, str]:
         s = ln.rstrip("\n").strip()
         if s.startswith("=== FILE: "):
             flush()
-            header = s[len("=== FILE: "):]
+            header = s[len("=== FILE: ") :]
             if header.endswith("==="):
                 header = header[:-3]
             cur_path = clean_path(header)
@@ -175,8 +189,11 @@ def compute_unified_diff(old: str, new: str, path: str, context: int = 3) -> str
     old_lines = old.splitlines(keepends=True)
     new_lines = new.splitlines(keepends=True)
     diff = difflib.unified_diff(
-        old_lines, new_lines,
-        fromfile=f"a/{path}", tofile=f"b/{path}", n=context,
+        old_lines,
+        new_lines,
+        fromfile=f"a/{path}",
+        tofile=f"b/{path}",
+        n=context,
     )
     body = "".join(diff)
     if not body:

@@ -20,6 +20,7 @@ from pathlib import Path
 # gitignore handling (pragmatic subset: *, **, ?, !, trailing /, comments)
 # ---------------------------------------------------------------------------
 
+
 def _load_gitignore_rules(repo_root: Path) -> list[tuple[str, str]]:
     """Return list of (kind, pattern) where kind in {'ignore', 'negate'}."""
     rules: list[tuple[str, str]] = []
@@ -77,14 +78,63 @@ def is_ignored(rules: list[tuple[str, str]], rel_path: str, is_dir: bool) -> boo
 # ---------------------------------------------------------------------------
 
 _BINARY_EXT = {
-    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".ico", ".avif",
-    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-    ".zip", ".gz", ".bz2", ".xz", ".7z", ".tar", ".rar",
-    ".so", ".a", ".o", ".dylib", ".dll", ".exe", ".bin", ".gguf", ".safetensors",
-    ".wav", ".mp3", ".flac", ".ogg", ".m4a", ".mp4", ".mov", ".mkv", ".webm",
-    ".ttf", ".otf", ".woff", ".woff2", ".eot",
-    ".pyc", ".pyo", ".class", ".jar", ".apk", ".aab", ".dex",
-    ".db", ".sqlite", ".sqlite3", ".idx", ".pack",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".bmp",
+    ".ico",
+    ".avif",
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".ppt",
+    ".pptx",
+    ".zip",
+    ".gz",
+    ".bz2",
+    ".xz",
+    ".7z",
+    ".tar",
+    ".rar",
+    ".so",
+    ".a",
+    ".o",
+    ".dylib",
+    ".dll",
+    ".exe",
+    ".bin",
+    ".gguf",
+    ".safetensors",
+    ".wav",
+    ".mp3",
+    ".flac",
+    ".ogg",
+    ".m4a",
+    ".mp4",
+    ".mov",
+    ".mkv",
+    ".webm",
+    ".ttf",
+    ".otf",
+    ".woff",
+    ".woff2",
+    ".eot",
+    ".pyc",
+    ".pyo",
+    ".class",
+    ".jar",
+    ".apk",
+    ".aab",
+    ".dex",
+    ".db",
+    ".sqlite",
+    ".sqlite3",
+    ".idx",
+    ".pack",
 }
 
 _SKIP_DIRS = {".git", ".hg", ".svn", ".sbrain"}
@@ -114,15 +164,21 @@ _SYM_PATTERNS: dict[str, list[re.Pattern]] = {
         re.compile(r"^\s*(?:typedef\s+)?(?:struct|enum|union)\s+(\w+)"),
     ],
     ".cpp": [
-        re.compile(r"^\s*(?:static\s+|inline\s+|constexpr\s+|virtual\s+|explicit\s+|LLAMA_API\w*\s+)*[\w:<>,~*&]+\s+(\w+)\s*\("),
+        re.compile(
+            r"^\s*(?:static\s+|inline\s+|constexpr\s+|virtual\s+|explicit\s+|LLAMA_API\w*\s+)*[\w:<>,~*&]+\s+(\w+)\s*\("
+        ),
         re.compile(r"^\s*(?:class|struct|enum|namespace)\s+(\w+)"),
     ],
     ".cc": [
-        re.compile(r"^\s*(?:static\s+|inline\s+|constexpr\s+|virtual\s+|explicit\s+)*[\w:<>,~*&]+\s+(\w+)\s*\("),
+        re.compile(
+            r"^\s*(?:static\s+|inline\s+|constexpr\s+|virtual\s+|explicit\s+)*[\w:<>,~*&]+\s+(\w+)\s*\("
+        ),
         re.compile(r"^\s*(?:class|struct|enum|namespace)\s+(\w+)"),
     ],
     ".hpp": [
-        re.compile(r"^\s*(?:static\s+|inline\s+|constexpr\s+|virtual\s+|explicit\s+|LLAMA_API\w*\s+)*[\w:<>,~*&]+\s+(\w+)\s*\("),
+        re.compile(
+            r"^\s*(?:static\s+|inline\s+|constexpr\s+|virtual\s+|explicit\s+|LLAMA_API\w*\s+)*[\w:<>,~*&]+\s+(\w+)\s*\("
+        ),
         re.compile(r"^\s*(?:class|struct|enum|namespace)\s+(\w+)"),
     ],
     ".js": [
@@ -136,20 +192,34 @@ _SYM_PATTERNS: dict[str, list[re.Pattern]] = {
         re.compile(r"^\s*(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\("),
         re.compile(r"^\s*(?:export\s+)?interface\s+(\w+)"),
     ],
-    ".go": [re.compile(r"^\s*func\s+(?:\(\w+ \*\w+\)\s*)?(\w+)"), re.compile(r"^\s*type\s+(\w+)\s+(?:struct|interface)")],
+    ".go": [
+        re.compile(r"^\s*func\s+(?:\(\w+ \*\w+\)\s*)?(\w+)"),
+        re.compile(r"^\s*type\s+(\w+)\s+(?:struct|interface)"),
+    ],
     ".rs": [
         re.compile(r"^\s*(?:pub\s+)?(?:async\s+)?fn\s+(\w+)"),
         re.compile(r"^\s*(?:pub\s+)?(?:struct|enum|trait|mod|impl)\s+(\w+)"),
     ],
     ".java": [
-        re.compile(r"^\s*(?:public|private|protected|static|final|abstract|synchronized|\w+)*\s*(\w+)\s*\("),
-        re.compile(r"^\s*(?:public|private|protected|abstract|final)?\s*(?:class|interface|enum)\s+(\w+)"),
+        re.compile(
+            r"^\s*(?:public|private|protected|static|final|abstract|synchronized|\w+)*\s*(\w+)\s*\("
+        ),
+        re.compile(
+            r"^\s*(?:public|private|protected|abstract|final)?\s*(?:class|interface|enum)\s+(\w+)"
+        ),
     ],
     ".kt": [
-        re.compile(r"^\s*(?:public|private|internal|protected|override|suspend|fun)?\s*fun\s+(\w+)"),
-        re.compile(r"^\s*(?:public|private|internal)?\s*(?:class|interface|object|data class)\s+(\w+)"),
+        re.compile(
+            r"^\s*(?:public|private|internal|protected|override|suspend|fun)?\s*fun\s+(\w+)"
+        ),
+        re.compile(
+            r"^\s*(?:public|private|internal)?\s*(?:class|interface|object|data class)\s+(\w+)"
+        ),
     ],
-    ".sh": [re.compile(r"^\s*([a-zA-Z_]\w*)\s*\(\)\s*\{"), re.compile(r"^\s*(?:function\s+)?([a-zA-Z_]\w*)\s*\(\)")],
+    ".sh": [
+        re.compile(r"^\s*([a-zA-Z_]\w*)\s*\(\)\s*\{"),
+        re.compile(r"^\s*(?:function\s+)?([a-zA-Z_]\w*)\s*\(\)"),
+    ],
 }
 
 
@@ -183,7 +253,8 @@ def build_index(repo_root: Path) -> dict:
 
     for dirpath, dirnames, filenames in os.walk(repo_root):
         dirnames[:] = sorted(
-            d for d in dirnames
+            d
+            for d in dirnames
             if d not in _SKIP_DIRS
             and not is_ignored(rules, os.path.relpath(os.path.join(dirpath, d), repo_root), True)
         )
@@ -205,7 +276,7 @@ def build_index(repo_root: Path) -> dict:
                 if _is_binary(fp, sample):
                     skipped += 1
                     continue
-                with open(fp, "r", errors="replace") as fh:
+                with open(fp, errors="replace") as fh:
                     text = fh.read()
             except OSError:
                 skipped += 1
@@ -214,12 +285,14 @@ def build_index(repo_root: Path) -> dict:
             if len(lines) > _MAX_LINES:
                 skipped += 1
                 continue
-            files.append({
-                "path": rel,
-                "lines": len(lines),
-                "size": size,
-                "syms": _symbols_for(fp, lines),
-            })
+            files.append(
+                {
+                    "path": rel,
+                    "lines": len(lines),
+                    "size": size,
+                    "syms": _symbols_for(fp, lines),
+                }
+            )
 
     index = {
         "root": str(repo_root),
@@ -239,6 +312,7 @@ def cache_path_for(repo_root: Path) -> Path:
 
 def save_index(index: dict, path: Path) -> None:
     import time
+
     index["created"] = time.time()
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(index, separators=(",", ":")))
