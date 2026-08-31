@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# sbrain launcher - run from anywhere.
+cd "$(dirname "$0")/.." || exit 1
+exec python3 -m sbrain "$@"
